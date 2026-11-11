@@ -4,6 +4,7 @@ import Resources.Register;
 import Resources.Instruction;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Assembler {
@@ -13,14 +14,12 @@ public class Assembler {
     public static final String ADDRESS_DELIMITER = "&";
     public static final String SCRIPT_EXTENSION = ".oas";
 
-    public static final int IMMEDIATE_MAX_BIT_COUNT = 3;
-    public static final int EXTENDED_IMM_MAX_BIT_COUNT = 6;
+    public static final int IMMEDIATE_MAX_BIT_COUNT = 4;
     public static final int OFFSET_MAX_BIT_COUNT = 8;
-    public static final int PIPELINE_OFFSET_IN_HALFWORDS = 2; //This considers a 3 stage pipeline
-
-    public static final byte[] END_BYTES = {(byte) 0x20, (byte) 0x00, (byte) 0xC0, (byte) 0xFD}; // Opcodes for an infinite loop
+    public static final int BRANCH_OFFSET_REDUCTION_DUETO_PC_INCREASE = 1;
 
     public static HashMap<String, Integer> labels = new HashMap<String, Integer>();
+    public static ArrayList<Integer> instructions = new ArrayList<>();
 
     public static void main(String[] args){
         if (args.length != 2) {
@@ -30,7 +29,7 @@ public class Assembler {
 
         //Initialise Orbyte Assembly (OAS) file.
         String inputFilePath = args[0];
-        String outputFilePath = args[1] + ".bin";
+        String outputFilePath = args[1] + ".txt";
         BitPacker packer = new BitPacker();
         ImmediateHandler immediateHandler = new ImmediateHandler();
 
@@ -44,7 +43,8 @@ public class Assembler {
             return;
         }
 
-        try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath));
+
+        /*try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath));
             DataOutputStream fileWriter = new DataOutputStream(new FileOutputStream(outputFilePath))){
 
             //Read each line
@@ -59,23 +59,16 @@ public class Assembler {
                     continue;
                 }
 
-                boolean flagsSet = tokens[0].toUpperCase().endsWith("S");
                 //Check if nothing illegal comes after label
                 if (tokens[0].endsWith(":")){
                     if (tokens.length > 1 && !tokens[1].startsWith(COMMENT_DELIMITER)){
                         System.err.printf("Syntax Error: Garbage following label at line %d\n", lineNo);
                         return;
                     }
-                } //Check if instruction while removing the last S character if it exists
-                else if (Instruction.isInstruction((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0])) {
+                }
+                else if (Instruction.isInstruction(tokens[0])) {
                     Instruction currentInstruction = Instruction.valueOf(
-                            ((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0]).toUpperCase());
-
-                    if (!currentInstruction.getHasFlagBit() && flagsSet) {
-                        System.err.printf("Syntax Error: Operation %s cannot have a flag setter bit \"S\"\n",
-                                currentInstruction.name());
-                        return;
-                    }
+                            (tokens[0]).toUpperCase());
 
                     instructionNo++;
                     int operandCount = currentInstruction.getOpCount();
@@ -103,7 +96,6 @@ public class Assembler {
                     switch (operandCount){
                         case 1: //Branch instruction
                             packer.fillWithZeros();
-                            fileWriter.writeByte(packer.packedBits);
 
                             String labelName = tokens[operandCount];
 
@@ -113,7 +105,7 @@ public class Assembler {
                                 return;
                             }
 
-                            int offset = (labels.get(labelName) - instructionNo) - PIPELINE_OFFSET_IN_HALFWORDS;
+                            int offset = (labels.get(labelName) - instructionNo) - BRANCH_OFFSET_REDUCTION_DUETO_PC_INCREASE;
 
                             if (offset >= Math.pow(2, OFFSET_MAX_BIT_COUNT-1)
                                     || offset < (-1) * Math.pow(2, OFFSET_MAX_BIT_COUNT)){
@@ -208,8 +200,8 @@ public class Assembler {
                                 }
                             }
                             else{
-                                packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
-                                packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
+//                                packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
+//                                packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
 
                                 for (int operand = 1; (operand < ((containsImmediate) ? operandCount : operandCount + 1)); operand++){
                                     if (!Register.isRegister(tokens[operand])){
@@ -230,18 +222,18 @@ public class Assembler {
                                         int immediateValue =
                                                 immediateHandler.parseImmediateToInt(tokens[operandCount]);
 
-                                        if (!immediateHandler.isInRange(immediateValue,
-                                                EXTENDED_IMM_MAX_BIT_COUNT, false)){
-                                            System.err.printf("Value Error: Immediate value size at line %d cannot be"+
-                                                            " larger than %d bits nor can be negative\n",
-                                                    lineNo, EXTENDED_IMM_MAX_BIT_COUNT);
-                                            return;
-                                        }
-
-                                        if(packer.appendBits((byte) immediateHandler.shortenNegative(immediateValue,
-                                                EXTENDED_IMM_MAX_BIT_COUNT), EXTENDED_IMM_MAX_BIT_COUNT)){
-                                            fileWriter.writeByte(packer.packedBits);
-                                        }
+//                                        if (!immediateHandler.isInRange(immediateValue,
+//                                                EXTENDED_IMM_MAX_BIT_COUNT, false)){
+//                                            System.err.printf("Value Error: Immediate value size at line %d cannot be"+
+//                                                            " larger than %d bits nor can be negative\n",
+//                                                    lineNo, EXTENDED_IMM_MAX_BIT_COUNT);
+//                                            return;
+//                                        }
+//
+//                                        if(packer.appendBits((byte) immediateHandler.shortenNegative(immediateValue,
+//                                                EXTENDED_IMM_MAX_BIT_COUNT), EXTENDED_IMM_MAX_BIT_COUNT)){
+//                                            fileWriter.writeByte(packer.packedBits);
+//                                        }
 
                                     } catch (NumberFormatException error) {
                                         System.err.printf("Syntax Error: The immediate operand at line %d must be"+
@@ -260,8 +252,8 @@ public class Assembler {
                             break;
                         case 3: //Operations
 
-                            packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
-                            packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
+                            //packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
+                            //packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
 
                             for (int operand = 1; (operand < (containsImmediate ? operandCount : operandCount + 1)); operand++){
                                 if (!Register.isRegister(tokens[operand])){
@@ -314,13 +306,6 @@ public class Assembler {
                 lineNo++;
             }
 
-            //This part adds the infinite loop made of
-            //End:
-            //      AND R0 R0 R0
-            //      B   End
-            for (byte byteToWrite : END_BYTES) {
-                fileWriter.writeByte(byteToWrite);
-            }
         }
         catch (FileNotFoundException error){
             System.err.printf("Error: File %s not found.\n", inputFilePath);
@@ -330,13 +315,13 @@ public class Assembler {
         catch (IOException error){
             System.err.println("Error: An error occurred while reading file: " + error.getMessage());
             return;
-        }
+        }*/
 
     }
 
     //Finds all labels in the file, if it occurs twice yields an error (returns false to end the program)
     //Puts all those labels names and the index of the instruction after it (to calculate offset later on)
-    //to a dictionary (I guess HashMap was more convenient in this case, but I used it as a dictionary).
+    //to a dictionary, also checks for unknown instructions not in the ISA
     public static boolean searchLabels(String inputFilePath, HashMap<String, Integer> labelDict){
         try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath))){
             int lineNo = 1;
@@ -350,7 +335,6 @@ public class Assembler {
                 String[] tokens = line.split(" +");
                 if (line.isEmpty() || line.startsWith(COMMENT_DELIMITER)) { lineNo++; continue; }
 
-                Instruction doubleSizedInstruction = Instruction.FRM;
                 if (tokens[0].equals(":")){
                     System.err.printf("Label Error: Label name cannot be empty at line %d\n", lineNo);
                     return false;
@@ -365,18 +349,12 @@ public class Assembler {
                     }
                     labelDict.put(labelName, instructionNo + 1);
                 }
-                else{
-                    //This clause increments once more for FRM instruction
-                    if (!(tokens.length <= doubleSizedInstruction.getOpCount())){
-                        String instructionName = ((tokens[0].toUpperCase().endsWith("S"))
-                                ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0]);
-                        boolean containsImmediate = tokens[doubleSizedInstruction.getOpCount()].startsWith(IMMEDIATE_DELIMITER);
-
-                        if (instructionName.toUpperCase().equals(doubleSizedInstruction.name()) && containsImmediate){
-                            instructionNo++;
-                        }
-                    }
+                else if (Instruction.isInstruction(tokens[0])){
                     instructionNo++;
+                }
+                else {
+                    System.err.printf("Syntax Error: Unknown instruction at line %d\n", lineNo);
+                    return false;
                 }
                 lineNo++;
             }

@@ -2,9 +2,9 @@ package Funcs;
 
 // Access packedBits if the method returns true, to store the packed bits
 public class BitPacker {
-    public final int packSize = 8;
-    public byte packedBits = 0;
-    public byte bitBuffer = 0;
+    public final int packSize = 32;
+    public int packedBits = 0;
+    public int bitBuffer = 0;
     public int bitCount = 0;
 
     // Appends the input bits to the input buffer from the right.
