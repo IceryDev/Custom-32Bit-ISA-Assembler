@@ -1,4 +1,3 @@
-import Funcs.BitPacker;
 import Funcs.ImmediateHandler;
 import Resources.Register;
 import Resources.Instruction;
@@ -13,6 +12,8 @@ public class Assembler {
     public static final String IMMEDIATE_DELIMITER = "#";
     public static final String ADDRESS_DELIMITER = "&";
     public static final String SCRIPT_EXTENSION = ".oas";
+    public static final String FLAG_SUFFIX = "S"; //Make sure this is a capital letter
+    public static final String LABEL_SUFFIX = ":";
 
     public static final int OPCODE_MASK = 0xFFFFF000;
     public static final int DEST_MASK = 0x00000F00;
@@ -36,7 +37,6 @@ public class Assembler {
         //Initialise Orbyte Assembly (OAS) file.
         String inputFilePath = args[0];
         String outputFilePath = args[1] + ".txt";
-        BitPacker packer = new BitPacker();
         ImmediateHandler immediateHandler = new ImmediateHandler();
 
         if (!inputFilePath.endsWith(SCRIPT_EXTENSION)){
@@ -93,13 +93,13 @@ public class Assembler {
             String[] tokens = line.split(" +");
             if (line.isEmpty()) { lineNo++; continue; }
 
-            if (tokens[0].equals(":")){
+            if (tokens[0].equals(LABEL_SUFFIX)){
                 System.err.printf("Label Error: Label name cannot be empty at line %d\n", lineNo);
                 return false;
             }
 
             //Assume all instructions are valid, that is checked in the assembly section
-            if (tokens[0].endsWith(":")){
+            if (tokens[0].endsWith(LABEL_SUFFIX)){
                 String labelName = tokens[0].substring(0, tokens[0].length() - 1);
                 if (labelDict.containsKey(labelName)){
                     System.err.printf("Label Error: Same file cannot have two identical labels \"%s\" at line %d\n",
@@ -129,9 +129,9 @@ public class Assembler {
             }
             String[] tokens = line.split(" +");
 
-            boolean flagsSet = tokens[0].toUpperCase().endsWith("S");
+            boolean flagsSet = tokens[0].toUpperCase().endsWith(FLAG_SUFFIX);
             //Check if nothing illegal comes after label
-            if (tokens[0].endsWith(":")){
+            if (tokens[0].endsWith(LABEL_SUFFIX)){
                 if (tokens.length > 1){
                     System.err.printf("Syntax Error: Garbage following label at line %d\n", lineNo);
                     return false;
