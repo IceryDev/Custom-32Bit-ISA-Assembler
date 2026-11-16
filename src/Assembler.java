@@ -14,12 +14,18 @@ public class Assembler {
     public static final String ADDRESS_DELIMITER = "&";
     public static final String SCRIPT_EXTENSION = ".oas";
 
+    public static final int OPCODE_MASK = 0xFFFFF000;
+    public static final int DEST_MASK = 0x00000F00;
+    public static final int REGA_MASK = 0x000000F0;
+    public static final int REGB_MASK = 0x0000000F;
+
     public static final int IMMEDIATE_MAX_BIT_COUNT = 4;
     public static final int OFFSET_MAX_BIT_COUNT = 8;
     public static final int BRANCH_OFFSET_REDUCTION_DUETO_PC_INCREASE = 1;
 
     public static HashMap<String, Integer> labels = new HashMap<String, Integer>();
     public static ArrayList<Integer> instructions = new ArrayList<>();
+    public static ArrayList<String> fileLines = new ArrayList<>();
 
     public static void main(String[] args){
         if (args.length != 2) {
@@ -38,325 +44,30 @@ public class Assembler {
             return;
         }
 
-        if (!searchLabels(inputFilePath, labels)){
+        if (!readFile(inputFilePath, fileLines)){
             //The error message is logged within the function.
             return;
         }
 
-
-        /*try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath));
-            DataOutputStream fileWriter = new DataOutputStream(new FileOutputStream(outputFilePath))){
-
-            //Read each line
-            int lineNo = 1;
-            int instructionNo = 0;
-            String line;
-            while ((line = fileReader.readLine()) != null) {
-                line = line.trim();
-                String[] tokens = line.split(" +");
-                if (line.isEmpty() || line.startsWith(COMMENT_DELIMITER)) {
-                    lineNo++;
-                    continue;
-                }
-
-                //Check if nothing illegal comes after label
-                if (tokens[0].endsWith(":")){
-                    if (tokens.length > 1 && !tokens[1].startsWith(COMMENT_DELIMITER)){
-                        System.err.printf("Syntax Error: Garbage following label at line %d\n", lineNo);
-                        return;
-                    }
-                }
-                else if (Instruction.isInstruction(tokens[0])) {
-                    Instruction currentInstruction = Instruction.valueOf(
-                            (tokens[0]).toUpperCase());
-
-                    instructionNo++;
-                    int operandCount = currentInstruction.getOpCount();
-                    if(tokens.length < (operandCount + 1)){
-                        System.err.printf("Syntax Error: Invalid number of operands at line %d, "+
-                                        "required %d but provided %d\n", lineNo, (operandCount + 1), tokens.length);
-                        return;
-                    }
-                    else if (tokens.length > (operandCount + 1) &&
-                                !tokens[(operandCount + 1)].startsWith(COMMENT_DELIMITER)){
-                        System.err.printf("Syntax Error: Garbage following instruction at line %d\n", lineNo);
-                        return;
-                    }
-
-                    boolean containsImmediate = tokens[operandCount].startsWith(IMMEDIATE_DELIMITER);
-                    if (containsImmediate && !currentInstruction.isImmediateAllowed()){
-                        System.err.printf("Syntax Error: The instruction %s at line %d does"+
-                                " not allow for an immediate operand\n", currentInstruction.name(), lineNo);
-                        return;
-                    }
-
-                    packer.appendBits(currentInstruction.getOpType(), Instruction.OPTYPE_BIT_COUNT);
-                    packer.appendBits(currentInstruction.getOpcode(), Instruction.OPCODE_BIT_COUNT);
-
-                    switch (operandCount){
-                        case 1: //Branch instruction
-                            packer.fillWithZeros();
-
-                            String labelName = tokens[operandCount];
-
-                            if (!labels.containsKey(labelName)){
-                                System.err.printf("Syntax Error: No such label defined as %s at line %d\n",
-                                                                                            labelName, lineNo);
-                                return;
-                            }
-
-                            int offset = (labels.get(labelName) - instructionNo) - BRANCH_OFFSET_REDUCTION_DUETO_PC_INCREASE;
-
-                            if (offset >= Math.pow(2, OFFSET_MAX_BIT_COUNT-1)
-                                    || offset < (-1) * Math.pow(2, OFFSET_MAX_BIT_COUNT)){
-                                System.err.printf("Error: Branch offset at line %d is too big\n", lineNo);
-                                return;
-                            }
-
-                            byte offsetInBytes = (byte) immediateHandler.shortenNegative(offset, OFFSET_MAX_BIT_COUNT);
-                            packer.appendBits(offsetInBytes, OFFSET_MAX_BIT_COUNT);
-                            fileWriter.writeByte(packer.packedBits);
-
-                            break;
-                        case 2: //Memory or Comparison
-                            if (currentInstruction.getOpType() == (byte) 0b10 &&
-                                    currentInstruction.getOpcode() > (byte) 0b100){ //Memory
-
-                                int immediateValue = 0;
-                                try{
-                                    //This part uses the flag bit as a negative flag
-                                    if (containsImmediate) {
-                                        immediateValue = immediateHandler.parseImmediateToInt(tokens[operandCount]);
-                                        packer.appendBits((byte) ((immediateValue < 0) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
-                                    }
-                                    else packer.appendBits((byte) (0b0), Instruction.FLAG_BIT_COUNT);
-
-                                    packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
-                                }
-                                catch (NumberFormatException error){
-                                    System.err.printf("Syntax Error: The immediate operand at line %d must be"+
-                                            " either binary, decimal, or hexadecimal\n", lineNo);
-                                    return;
-                                }
-
-                                if (!Register.isRegister(tokens[1].toUpperCase())){
-                                    System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Operands other than"+
-                                                    " the last operand must be a register mnemonic (i.e. R0 or R1)\n",
-                                            tokens[1], lineNo);
-                                    return;
-                                }
-
-                                if(packer.appendBits(Register.valueOf(tokens[1].toUpperCase()).getRegCode(),
-                                                                                Register.REGCODE_BIT_COUNT)){
-                                    fileWriter.writeByte(packer.packedBits);
-                                }
-
-                                if (containsImmediate){
-                                    if (!immediateHandler.isInRange(immediateValue,
-                                            Register.REGISTER_SIZE, true)){
-                                        System.err.printf("Value Error: Immediate value size at line %d cannot be"+
-                                                        " larger than %d bits\n",
-                                                lineNo, Register.REGISTER_SIZE);
-                                        return;
-                                    }
-
-                                    if(packer.appendBits((byte) 0b0, packer.packSize - packer.bitCount)){
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-
-                                    //These two together form a Little-Endian storage of a byte, I wanted uniform incrementing
-                                    //to the program counter, that is why this is half-word-sized.
-                                    //If I decide to make this processor 16-bit later on, this will change.
-                                    if(packer.appendBits((byte) 0b0, Register.REGISTER_SIZE)){ //Fill the next byte with zeros
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-
-                                    if(packer.appendBits((byte) immediateHandler.shortenNegative(immediateValue,
-                                            Register.REGISTER_SIZE), Register.REGISTER_SIZE)){
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-
-                                    instructionNo++; //Incrementing this again as we took up another instruction-sized space.
-                                }
-                                else{
-                                    boolean isAddress = tokens[operandCount].startsWith(ADDRESS_DELIMITER);
-
-                                    if (!Register.isRegister(tokens[operandCount].substring((isAddress) ? 1 : 0))){
-                                        System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d."+
-                                                        " Non-immediate operand must be a register mnemonic (i.e. R0 or R1)\n",
-                                                                    tokens[operandCount].substring((isAddress) ? 1 : 0), lineNo);
-                                        return;
-                                    }
-
-                                    if(packer.appendBits(Register.valueOf(
-                                            tokens[operandCount].substring((isAddress) ? 1 : 0).toUpperCase()).getRegCode(),
-                                                                            Register.REGCODE_BIT_COUNT)){
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-
-                                    if (isAddress) packer.fillWithOnes();
-                                    else packer.fillWithZeros();
-                                    fileWriter.writeByte(packer.packedBits);
-                                }
-                            }
-                            else{
-//                                packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
-//                                packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
-
-                                for (int operand = 1; (operand < ((containsImmediate) ? operandCount : operandCount + 1)); operand++){
-                                    if (!Register.isRegister(tokens[operand])){
-                                        System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Operands other than"+
-                                                        " the last operand must be a register mnemonic (i.e. R0 or R1)",
-                                                tokens[operand], lineNo);
-                                        return;
-                                    }
-
-                                    if(packer.appendBits(Register.valueOf(tokens[operand].toUpperCase()).getRegCode(),
-                                            Register.REGCODE_BIT_COUNT)){
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-                                }
-
-                                if (containsImmediate) {
-                                    try{
-                                        int immediateValue =
-                                                immediateHandler.parseImmediateToInt(tokens[operandCount]);
-
-//                                        if (!immediateHandler.isInRange(immediateValue,
-//                                                EXTENDED_IMM_MAX_BIT_COUNT, false)){
-//                                            System.err.printf("Value Error: Immediate value size at line %d cannot be"+
-//                                                            " larger than %d bits nor can be negative\n",
-//                                                    lineNo, EXTENDED_IMM_MAX_BIT_COUNT);
-//                                            return;
-//                                        }
-//
-//                                        if(packer.appendBits((byte) immediateHandler.shortenNegative(immediateValue,
-//                                                EXTENDED_IMM_MAX_BIT_COUNT), EXTENDED_IMM_MAX_BIT_COUNT)){
-//                                            fileWriter.writeByte(packer.packedBits);
-//                                        }
-
-                                    } catch (NumberFormatException error) {
-                                        System.err.printf("Syntax Error: The immediate operand at line %d must be"+
-                                                " either binary, decimal, or hexadecimal\n", lineNo);
-                                        return;
-                                    }
-                                }
-                                else{
-
-                                    packer.fillWithZeros();
-                                    fileWriter.writeByte(packer.packedBits);
-
-                                }
-                            }
-
-                            break;
-                        case 3: //Operations
-
-                            //packer.appendBits((byte) ((flagsSet) ? 0b1 : 0b0), Instruction.FLAG_BIT_COUNT);
-                            //packer.appendBits((byte) ((containsImmediate) ? 0b1 : 0b0), Instruction.IMM_FLAG_BIT_COUNT);
-
-                            for (int operand = 1; (operand < (containsImmediate ? operandCount : operandCount + 1)); operand++){
-                                if (!Register.isRegister(tokens[operand])){
-                                    System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Operands other than"+
-                                                                " the last operand must be a register mnemonic (i.e. R0 or R1)",
-                                                                                                        tokens[operand], lineNo);
-                                    return;
-                                }
-
-                                if(packer.appendBits(Register.valueOf(tokens[operand].toUpperCase()).getRegCode(),
-                                                                                    Register.REGCODE_BIT_COUNT)){
-                                    fileWriter.writeByte(packer.packedBits);
-                                }
-                            }
-
-                            if (containsImmediate) {
-                                try{
-                                    int immediateValue =
-                                            immediateHandler.parseImmediateToInt(tokens[operandCount]);
-
-                                    if (!immediateHandler.isInRange(immediateValue,
-                                            IMMEDIATE_MAX_BIT_COUNT, false)){
-                                        System.err.printf("Value Error: Immediate value size at line %d cannot be"+
-                                                                            " larger than %d bits nor can be negative\n",
-                                                                                        lineNo, IMMEDIATE_MAX_BIT_COUNT);
-                                        return;
-                                    }
-
-                                    if(packer.appendBits((byte) immediateHandler.shortenNegative(immediateValue,
-                                                            IMMEDIATE_MAX_BIT_COUNT), Register.REGCODE_BIT_COUNT)){
-                                        fileWriter.writeByte(packer.packedBits);
-                                    }
-
-                                } catch (NumberFormatException error) {
-                                    System.err.printf("Syntax Error: The immediate operand at line %d must be"+
-                                                            " either binary, decimal, or hexadecimal\n", lineNo);
-                                    return;
-                                }
-                            }
-
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                else{
-                    System.err.printf("Syntax Error: Unknown instruction at line %d\n", lineNo);
-                }
-
-                lineNo++;
-            }
-
-        }
-        catch (FileNotFoundException error){
-            System.err.printf("Error: File %s not found.\n", inputFilePath);
+        if (!searchLabels(fileLines, labels)){
+            //The error message is logged within the function.
             return;
-
         }
-        catch (IOException error){
-            System.err.println("Error: An error occurred while reading file: " + error.getMessage());
-            return;
-        }*/
+
+        if (!assembleInstructions(fileLines, labels, instructions)) return;
 
     }
 
-    //Finds all labels in the file, if it occurs twice yields an error (returns false to end the program)
-    //Puts all those labels names and the index of the instruction after it (to calculate offset later on)
-    //to a dictionary, also checks for unknown instructions not in the ISA
-    public static boolean searchLabels(String inputFilePath, HashMap<String, Integer> labelDict){
+    //Reads the file to generate a list of each line, removes comments and blank spaces
+    public static boolean readFile(String inputFilePath, ArrayList<String> lines) {
         try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath))){
-            int lineNo = 1;
-            int instructionNo = 0;
             String line;
-            //Go through each line.
-            //This assumes any line which does not start with a comment or is not a label as an instruction.
-            //Because if it is not a valid instruction we will throw an error on the second pass.
+
             while ((line = fileReader.readLine()) != null){
                 line = line.trim();
-                String[] tokens = line.split(" +");
-                if (line.isEmpty() || line.startsWith(COMMENT_DELIMITER)) { lineNo++; continue; }
+                int p = line.indexOf(COMMENT_DELIMITER);
 
-                if (tokens[0].equals(":")){
-                    System.err.printf("Label Error: Label name cannot be empty at line %d\n", lineNo);
-                    return false;
-                }
-
-                if (tokens[0].endsWith(":")){
-                    String labelName = tokens[0].substring(0, tokens[0].length() - 1);
-                    if (labelDict.containsKey(labelName)){
-                        System.err.printf("Label Error: Same file cannot have two identical labels \"%s\" at line %d\n",
-                                                                                                        labelName, lineNo);
-                        return false;
-                    }
-                    labelDict.put(labelName, instructionNo + 1);
-                }
-                else if (Instruction.isInstruction(tokens[0])){
-                    instructionNo++;
-                }
-                else {
-                    System.err.printf("Syntax Error: Unknown instruction at line %d\n", lineNo);
-                    return false;
-                }
-                lineNo++;
+                lines.addLast((p != -1) ? line.substring(0, p) : line);
             }
             return true;
         }
@@ -368,5 +79,71 @@ public class Assembler {
             System.err.println("Error: An error occurred while reading file: " + error.getMessage());
             return false;
         }
+    }
+
+    //Finds all labels in the file, if it occurs twice yields an error (returns false to end the program)
+    //Puts all those labels names and the index of the instruction after it (to calculate offset later on)
+    //to a dictionary, also checks for unknown instructions not in the ISA
+    public static boolean searchLabels(ArrayList<String> lines, HashMap<String, Integer> labelDict){
+
+        int instructionNo = 0;
+        int lineNo = 1;
+
+        for (String line : lines){
+            String[] tokens = line.split(" +");
+            if (line.isEmpty()) { lineNo++; continue; }
+
+            if (tokens[0].equals(":")){
+                System.err.printf("Label Error: Label name cannot be empty at line %d\n", lineNo);
+                return false;
+            }
+
+            //Assume all instructions are valid, that is checked in the assembly section
+            if (tokens[0].endsWith(":")){
+                String labelName = tokens[0].substring(0, tokens[0].length() - 1);
+                if (labelDict.containsKey(labelName)){
+                    System.err.printf("Label Error: Same file cannot have two identical labels \"%s\" at line %d\n",
+                            labelName, lineNo);
+                    return false;
+                }
+                labelDict.put(labelName, instructionNo + 1);
+            }
+            else {
+                instructionNo++;
+            }
+            lineNo++;
+        }
+        return true;
+    }
+
+    public static boolean assembleInstructions(ArrayList<String> lines,
+                                               HashMap<String, Integer> labelDict, ArrayList<Integer> out) {
+
+        int lineNo = 1;
+        int instructionNo = 0;
+
+        for (String line : lines) {
+            if (line.isEmpty() || line.startsWith(COMMENT_DELIMITER)) {
+                lineNo++;
+                continue;
+            }
+            String[] tokens = line.split(" +");
+
+            boolean flagsSet = tokens[0].toUpperCase().endsWith("S");
+            //Check if nothing illegal comes after label
+            if (tokens[0].endsWith(":")){
+                if (tokens.length > 1){
+                    System.err.printf("Syntax Error: Garbage following label at line %d\n", lineNo);
+                    return false;
+                }
+            }
+            else if (Instruction.isInstruction((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0])) {
+                Instruction currentInstruction = Instruction.valueOf(
+                        ((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0]).toUpperCase());
+            }
+
+            lineNo++;
+        }
+        return false;
     }
 }

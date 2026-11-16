@@ -2,5 +2,8 @@
 TempLabel:
     MOV     R0 #0
     FRM     R1 #0x20
-    SMT     R1, R1
+
+AnotherLabel:
+    SUM     R0 R0 R0
+    B       AnotherLabel
     
