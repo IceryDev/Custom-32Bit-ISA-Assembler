@@ -1,13 +1,13 @@
-# 🛰️ Orbyte Assembler
+# 32-Bit Processor Assembler
 
 ### About
-A two-pass assembler for a future breadboard-based microprocessor project. Works with files with the ".oas" (Orbyte Assembly) extension. 
-See the example.oas file for reference syntax and Instruction.java file to see each instruction's ARM correspondent instruction.
+A two-pass assembler for the 32-bit processor we are building as part of my coursework. This assembler is modified from my previous assembler (Orbyte Assembler \<link to be inserted here\>) , and follows the exact same syntax in terms of instructions.
 
 ### Properties
-- 16-bit instruction set with 24 instructions (Arithmetic, Logic, Shift, Memory, Branching)
-- Encoding for 8 8-bit registers R0, R1, R2, ..., R7 and the Program Counter (PC) which is in R7
+- 32-bit instruction set with mostly fixed mnemonics.
+- Encoding for 32 16-bit registers R0, R1, R2, ..., R15
 - Labels and PC offset calculation for branching
+- It reads in opcodes from a separate file to not fully disclose the coursework ISA
 
 ### General Instruction Structure
 - 3-operand instruction general format:
