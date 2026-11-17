@@ -1,5 +1,8 @@
+import Funcs.ISetParser;
 import Funcs.ImmediateHandler;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +15,7 @@ public class Assembler {
     public static final String SCRIPT_EXTENSION = ".oas";
     public static final String FLAG_SUFFIX = "S"; //Make sure this is a capital letter
     public static final String LABEL_SUFFIX = ":";
+    public static final String CONFIG_PATH = "src/isetConfig.xml";
 
     //Do not modify any of these below unless you are sure what you are doing.
     public static final int OPCODE_MASK = 0xFFFFF000;
@@ -37,6 +41,19 @@ public class Assembler {
         String inputFilePath = args[0];
         String outputFilePath = args[1] + ".txt";
         ImmediateHandler immediateHandler = new ImmediateHandler();
+        ISetParser isp;
+        try {
+            isp = new ISetParser(CONFIG_PATH);
+        }
+        catch(ParserConfigurationException | IOException | SAXException e) {
+            System.err.println("ConfigError: Couldn't read XML Config File");
+            return;
+        }
+        catch (IllegalArgumentException e) {
+            return;
+        }
+
+        System.out.println(isp.memType + " " + isp.flagType + " " + isp.immType + " " + isp.startIndex);
 
         if (!inputFilePath.endsWith(SCRIPT_EXTENSION)){
             System.err.println("Error: Invalid file extension, file name must end with " + SCRIPT_EXTENSION);
@@ -136,10 +153,10 @@ public class Assembler {
                     return false;
                 }
             }
-            else if (Instruction.isInstruction((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0])) {
-                Instruction currentInstruction = Instruction.valueOf(
-                        ((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0]).toUpperCase());
-            }
+//            else if (Instruction.isInstruction((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0])) {
+//                Instruction currentInstruction = Instruction.valueOf(
+//                        ((flagsSet) ? tokens[0].substring(0, tokens[0].length() - 1) : tokens[0]).toUpperCase());
+//            }
 
             lineNo++;
         }
