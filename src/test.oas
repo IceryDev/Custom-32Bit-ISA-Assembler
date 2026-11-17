@@ -6,4 +6,7 @@ TempLabel:
 AnotherLabel:
     SUM     R0 R0 R0
     B       AnotherLabel
-    
+
+End:
+    AND     R0 R0 R0
+    B       End

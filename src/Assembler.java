@@ -1,6 +1,4 @@
 import Funcs.ImmediateHandler;
-import Resources.Register;
-import Resources.Instruction;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -15,6 +13,7 @@ public class Assembler {
     public static final String FLAG_SUFFIX = "S"; //Make sure this is a capital letter
     public static final String LABEL_SUFFIX = ":";
 
+    //Do not modify any of these below unless you are sure what you are doing.
     public static final int OPCODE_MASK = 0xFFFFF000;
     public static final int DEST_MASK = 0x00000F00;
     public static final int REGA_MASK = 0x000000F0;
