@@ -50,10 +50,9 @@ public class Assembler {
             return;
         }
         catch (IllegalArgumentException e) {
+            System.err.println("XMLSyntaxError: XML Config File format is incorrect.");
             return;
         }
-
-        System.out.println(isp.memType + " " + isp.flagType + " " + isp.immType + " " + isp.startIndex);
 
         if (!inputFilePath.endsWith(SCRIPT_EXTENSION)){
             System.err.println("Error: Invalid file extension, file name must end with " + SCRIPT_EXTENSION);
