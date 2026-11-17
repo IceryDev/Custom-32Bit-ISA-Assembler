@@ -23,5 +23,6 @@
 hs_err_pid*
 replay_pid*
 
+src/iset.xml
 out
 out/*
