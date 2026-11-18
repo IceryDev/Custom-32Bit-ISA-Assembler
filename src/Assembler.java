@@ -16,6 +16,7 @@ public class Assembler {
     public static final String FLAG_SUFFIX = "S"; //Make sure this is a capital letter
     public static final String LABEL_SUFFIX = ":";
     public static final String CONFIG_PATH = "src/isetConfig.xml";
+    public static final String ISA_PATH = "src/isa.csv";
 
     //Do not modify any of these below unless you are sure what you are doing.
     public static final int OPCODE_MASK = 0xFFFFF000;
@@ -54,20 +55,16 @@ public class Assembler {
             return;
         }
 
+        if (!isp.getISet(ISA_PATH)) return; //The error message is logged within the function.
+
         if (!inputFilePath.endsWith(SCRIPT_EXTENSION)){
             System.err.println("Error: Invalid file extension, file name must end with " + SCRIPT_EXTENSION);
             return;
         }
 
-        if (!readFile(inputFilePath, fileLines)){
-            //The error message is logged within the function.
-            return;
-        }
+        if (!readFile(inputFilePath, fileLines)) return; //The error message is logged within the function.
 
-        if (!searchLabels(fileLines, labels)){
-            //The error message is logged within the function.
-            return;
-        }
+        if (!searchLabels(fileLines, labels)) return; //The error message is logged within the function.
 
         if (!assembleInstructions(fileLines, labels, instructions)) return;
 

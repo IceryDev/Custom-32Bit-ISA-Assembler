@@ -2,6 +2,7 @@ package Resources;
 
 public record Instruction(int opCode,
                           boolean isBranch,
+                          boolean isCompare,
                           boolean isLoad,
                           int opCount,
                           boolean setFlags,

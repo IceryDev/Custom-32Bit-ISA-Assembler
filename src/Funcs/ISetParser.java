@@ -11,13 +11,18 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.*;
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.File;
 import java.util.HashMap;
 import java.util.IllegalFormatWidthException;
 
 public class ISetParser {
-    public ArrayList<Instruction> iset = new ArrayList<>();
+    public static final String TRUE_VAL = "1";
+
+    public HashMap<String, Instruction> iset = new HashMap<>();
     public final ImmType immType;
     public final FlagType flagType;
     public final MemType memType;
@@ -99,8 +104,17 @@ public class ISetParser {
 
             while ((line = fileReader.readLine()) != null){
                 line = line.trim();
+                if (line.startsWith("INST")) continue;
 
-
+                String[] tokens = line.split(",[ \t]+");
+                this.iset.put(tokens[0], new Instruction(Integer.decode(tokens[1]),
+                        tokens[2].compareTo(TRUE_VAL) == 0,
+                        tokens[3].compareTo(TRUE_VAL) == 0,
+                        tokens[4].compareTo(TRUE_VAL) == 0,
+                        Integer.parseInt(tokens[5]),
+                        tokens[6].compareTo(TRUE_VAL) == 0,
+                        tokens[7].compareTo(TRUE_VAL) == 0,
+                        tokens[8].compareTo(TRUE_VAL) == 0));
             }
             return true;
         }
@@ -112,5 +126,19 @@ public class ISetParser {
             System.err.println("Error: An error occurred while reading file: " + error.getMessage());
             return false;
         }
+        catch (NumberFormatException error) {
+            System.err.println("Error: Invalid number format in ISA file");
+            return false;
+        }
     }
+
+    //  For testing
+//    public void printInstructions() {
+//        if (this.iset.isEmpty()) return;
+//
+//        for (String val : this.iset.keySet()) {
+//            Instruction tmp = this.iset.get(val);
+//            System.out.printf("%s, %d, %d, %b, %b\n", val, tmp.opCode(), tmp.opCount(), tmp.isBranch(), tmp.isCompare());
+//        }
+//    }
 }
