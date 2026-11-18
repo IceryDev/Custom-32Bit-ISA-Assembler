@@ -1,7 +1,7 @@
 # 32-Bit Processor Assembler
 
 ### About
-A two-pass assembler for the 32-bit processor we are building as part of my coursework. This assembler is modified from my previous assembler ([Orbyte Assembler](https://github.com/IceryDev/Orbyte-Assembler)) , and follows the exact same syntax in terms of instructions. I did not want to write the instructions in binary, so I made this.
+A two-pass assembler for the 32-bit processor we are building as part of my coursework. This assembler is modified from my previous assembler ([Orbyte Assembler](https://github.com/IceryDev/Orbyte-Assembler)) and follows the exact same syntax in terms of instructions. Shortly, I did not want to write the instructions in binary, so I made this.
 
 ### Properties
 - 32-bit instruction set with fixed mnemonics.
@@ -11,7 +11,7 @@ A two-pass assembler for the 32-bit processor we are building as part of my cour
 - Disclaimer: This assembler is not designed to replace the thinking required by our module. The instruction set architecture, choices in operands and operations, and control memory micro-coding all have to be implemented correctly for this assembler to function as intended.
 
 ### Configuration
-The approach used to represent instructions with immediate operands or flag setting instructions, and the memory layout can be configured through an XML file, whose example layout is specified below.
+The approach used to represent instructions with immediate operands or flag-setting instructions, and the memory layout can be configured through an XML file, whose example layout is specified below.
 ```xml
 <?xml version="1.0" encoding="UTF-16" ?>
 
@@ -22,7 +22,7 @@ The approach used to represent instructions with immediate operands or flag sett
     <Start>Value</Start>
 </ISAOptions>
 ```
-Allowed modes are as follows, for more information, see the Javadoc at the top of the files under src/Resources:
+Allowed modes are as follows; for more information, see the Javadoc at the top of the files under src/Resources:
 <br>
 - ImmType: Separate, Incremental, ImmBit
 - FlagType: Hardware, Incremental, SBit
@@ -31,15 +31,15 @@ Allowed modes are as follows, for more information, see the Javadoc at the top o
 <br> _If Shift is chosen for MemType, the shift amount has to be specified. This is a positive integer that makes the instruction memory start from 1 << ShiftAmnt_
 
 ### Instruction Set Specification
-Additionally, the program must be supplied with a valid instruction set, in CSV format which includes headers. An example with the headers is given below:
+Additionally, the program must be supplied with a valid instruction set, in CSV format, which includes headers. An example with the headers is given below:
 ```
 INST, OpCode, Branch, Compare, Load, OpCount, SetFlags, RegAllow, ImmAllow
 ADD, 0x12345, 0, 0, 0, 3, 1, 1, 1
 ```
 Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 <BR>
-- `INST`: The instruction mnemonic. Examples from ARM Assembly include `LDR`, or `BEQ`
-- `OpCode`: The opcode bits of the instruction. By default, this is 20 bits, but the selection ImmBit and SBit decrease this by one each. Must be hexadecimal or decimal without zero-paddings.
+- `INST`: The instruction mnemonic. Examples from ARM Assembly include `LDR` or `BEQ`
+- `OpCode`: The opcode bits of the instruction. By default, this is 20 bits, but the selection ImmBit and SBit decrease this by one each. Must be hexadecimal or decimal without zero-padding.
 - `Branch`: Is this instruction a branch instruction?
 - `Compare`: Is the only purpose of this instruction setting flags?
 - `Load`: Is this instruction used when loading values _from_ memory?
@@ -73,14 +73,14 @@ Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 Where <\op>, <\Rd>, <\Rn>, <\Rm>, <\Ra>, and <\imm4/32> are placeholders for the instruction name, destination register, register operand 1, 
 register operand 2, register operand containing address, and immediate value with size 4/32 bits.
 
-### Delimiters (Can be configured using from the Assembler.java file)
+### Delimiters (Can be configured from the Assembler.java file)
 - "#": Precedes an immediate operand
 - "&": Precedes a register operand to be considered as an address
 - "//": Precedes comments (Multi-line comments not supported)
 - ":": Succeeds a label name
 
 ### Running the Assembler
-To run this assembler, you need JDK 21 or above.
+To run this assembler, you need JDK 21 or later.
 
 Get the .jar file from the releases part, place all required files in the same folder and run within that folder:
 ```bash
