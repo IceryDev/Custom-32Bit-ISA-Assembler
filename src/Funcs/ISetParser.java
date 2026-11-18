@@ -32,6 +32,9 @@ public class ISetParser {
     public final int shiftAmount;
     public int userDefOpcodeSize = 20; //In bits
 
+    /**
+     * Reads the config file and stores it in the ISP
+     */
     public ISetParser (String configFilePath)
                                     throws ParserConfigurationException, IOException, SAXException, IllegalArgumentException {
 
@@ -117,6 +120,11 @@ public class ISetParser {
         }
     }
 
+    /**
+     * Reads a formatted .csv file to retrieve instructions and opcodes.
+     * @param isetFilePath File path to the .csv file
+     * @return Whether the operation was successful
+     */
     public boolean getISet(String isetFilePath) {
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(isetFilePath))){

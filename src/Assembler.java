@@ -81,7 +81,11 @@ public class Assembler {
 
     }
 
-    //Reads the file to generate a list of each line, removes comments and blank spaces
+    /**
+     * Reads the file to generate a list of each line, removes comments and blank spaces
+     * @param lines Array to place the output lines into
+     * @return Whether the operation is successful or not
+     */
     public static boolean readFile(String inputFilePath, ArrayList<String> lines) {
         try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath))){
             String line;
@@ -104,9 +108,11 @@ public class Assembler {
         }
     }
 
-    //Finds all labels in the file, if it occurs twice yields an error (returns false to end the program)
-    //Puts all those labels names and the index of the instruction after it (to calculate offset later on)
-    //to a dictionary, also checks for unknown instructions not in the ISA
+    /**
+     * Finds all labels in the file, if it occurs twice yields an error (returns false to end the program)
+     * Puts all those labels names and the index of the instruction after it (to calculate offset later on)
+     * to a dictionary, also checks for unknown instructions not in the ISA
+     */
     public static boolean searchLabels(ArrayList<String> lines, HashMap<String, Integer> labelDict){
 
         int instructionNo = 0;
@@ -139,6 +145,15 @@ public class Assembler {
         return true;
     }
 
+    /**
+     * Assembles the instructions into correct opcodes, calculates branch offsets, allocates memory (if option is set)
+     * for memory instructions, and places correct immediate or register values into the payload.
+     * @param lines The list of instructions to assemble
+     * @param labelDict The lookup table with labels and which instructions they come before
+     * @param isp The parser object to read configuration and ISA Spec
+     * @param out The output array containing 32-bit words of instructions (integer)
+     * @return Whether the operation is successful
+     */
     public static boolean assembleInstructions(ArrayList<String> lines,
                                                HashMap<String, Integer> labelDict,
                                                ISetParser isp,
@@ -352,6 +367,13 @@ public class Assembler {
         return opCode;
     }
 
+    /**
+     * Creates a memory block suitable for Vivado
+     * @param outputPath Text file path
+     * @param insts The list containing the assembled opcodes and payloads
+     * @param mem Memory used by load instructions
+     * @param isp The parser object for configuration details
+     */
     private static void createMemFile(String outputPath, ArrayList<Integer> insts, ArrayList<Integer> mem, ISetParser isp) {
 
         try (PrintWriter out = new PrintWriter(new FileWriter(outputPath, StandardCharsets.UTF_8))) {
