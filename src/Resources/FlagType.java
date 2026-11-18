@@ -16,21 +16,22 @@ package Resources;
 public enum FlagType {
     Hardware() {
         @Override
-        int encode(int opCode, boolean setFlags, boolean immSet) {
+        public int encode(int opCode, boolean setFlags, boolean immAllwAndInc, boolean cmpOverride) {
             return opCode;
         }
     },
     SBit(1) {
         @Override
-        int encode(int opCode, boolean setFlags, boolean immSet) {
+        public int encode(int opCode, boolean setFlags, boolean immAllwAndInc, boolean cmpOverride) {
+            if (cmpOverride) return (opCode << 1) | 1;
             return ((opCode << 1) + (setFlags ? 1 : 0));
         }
     },
     Incremental() {
         @Override
-        int encode(int opCode, boolean setFlags, boolean immSet) {
-            if (!setFlags) return opCode;
-            return (opCode + (immSet ? 2 : 1));
+        public int encode(int opCode, boolean setFlags, boolean immAllwAndInc, boolean cmpOverride) {
+            if (cmpOverride || !setFlags) return opCode;
+            return (opCode + (immAllwAndInc ? 2 : 1));
         }
     };
 
@@ -43,5 +44,5 @@ public enum FlagType {
         this.OP_SHRINK = opShrink;
     }
 
-    abstract int encode(int opCode, boolean setFlags, boolean immSet);
+    public abstract int encode(int opCode, boolean setFlags, boolean immAllwAndInc, boolean cmpOverride);
 }

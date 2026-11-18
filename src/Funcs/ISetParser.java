@@ -21,6 +21,7 @@ import java.util.IllegalFormatWidthException;
 
 public class ISetParser {
     public static final String TRUE_VAL = "1";
+    public static final int HEADER_SIZE = 9;
 
     public HashMap<String, Instruction> iset = new HashMap<>();
     public final ImmType immType;
@@ -29,6 +30,7 @@ public class ISetParser {
     public final int memIndex;
     public final int memSize;
     public final int shiftAmount;
+    public int userDefOpcodeSize = 20; //In bits
 
     public ISetParser (String configFilePath)
                                     throws ParserConfigurationException, IOException, SAXException, IllegalArgumentException {
@@ -51,6 +53,7 @@ public class ISetParser {
             default:
                 throw new IllegalArgumentException("Error: ImmType is not valid in config file!");
         }
+        userDefOpcodeSize -= this.immType.OP_SHRINK;
 
         elements = configFile.getElementsByTagName("FlagType");
         if (elements.getLength() != 1) {
@@ -69,6 +72,7 @@ public class ISetParser {
             default:
                 throw new IllegalArgumentException("Error: FlagType is not valid in config file!");
         }
+        userDefOpcodeSize -= this.flagType.OP_SHRINK;
 
         elements = configFile.getElementsByTagName("MemType");
         if (elements.getLength() != 1) {
@@ -117,20 +121,40 @@ public class ISetParser {
 
         try (BufferedReader fileReader = new BufferedReader(new FileReader(isetFilePath))){
             String line;
-
+            line = fileReader.readLine();
+            String[] headers = line.trim().split(",\\s*");
+            if (headers.length != HEADER_SIZE) {
+                System.err.println("Error: Header mismatch, couldn't read CSV.");
+                return false;
+            }
             while ((line = fileReader.readLine()) != null){
                 line = line.trim();
-                if (line.startsWith("INST")) continue;
 
-                String[] tokens = line.split(",[ \t]+");
-                this.iset.put(tokens[0], new Instruction(Integer.decode(tokens[1]),
+                String[] tokens = line.split(",\\s*");
+                if (tokens.length != HEADER_SIZE) {
+                    System.err.println("Error: Missing elements in ISA spec. Please fill all fields.");
+                    return false;
+                }
+                Instruction tmp = new Instruction(Integer.decode(tokens[1]),
                         tokens[2].compareTo(TRUE_VAL) == 0,
                         tokens[3].compareTo(TRUE_VAL) == 0,
                         tokens[4].compareTo(TRUE_VAL) == 0,
                         Integer.parseInt(tokens[5]),
                         tokens[6].compareTo(TRUE_VAL) == 0,
                         tokens[7].compareTo(TRUE_VAL) == 0,
-                        tokens[8].compareTo(TRUE_VAL) == 0));
+                        tokens[8].compareTo(TRUE_VAL) == 0);
+
+                if (tmp.opCount() > 3) {
+                    System.err.println("Error: This assembler only supports instructions with 2 or 3 operands. " +
+                            "Additionally, branch instructions must have only 1 operand, otherwise that field will be ignored.");
+                    return false;
+                }
+                if (this.iset.containsKey(tokens[0])) {
+                    System.err.println("Error: Duplicate entries in the ISA.");
+                    return false;
+                }
+                this.iset.put(tokens[0], tmp);
+
             }
             return true;
         }

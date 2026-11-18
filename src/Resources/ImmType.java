@@ -20,19 +20,19 @@ package Resources;
 public enum ImmType {
     ImmBit(1) {
         @Override
-        int encode(int opCode, boolean imm) {
+        public int encode(int opCode, boolean imm) {
             return ((opCode << 1) + (imm ? 1 : 0));
         }
     },
     Incremental(){
         @Override
-        int encode(int opCode, boolean imm) {
+        public int encode(int opCode, boolean imm) {
             return (opCode + (imm ? 1 : 0));
         }
     },
     Separate() {
         @Override
-        int encode(int opCode, boolean imm) {
+        public int encode(int opCode, boolean imm) {
             return opCode;
         }
     };
@@ -46,5 +46,5 @@ public enum ImmType {
         this.OP_SHRINK = opShrink;
     }
 
-    abstract int encode(int opCode, boolean imm);
+    public abstract int encode(int opCode, boolean imm);
 }
