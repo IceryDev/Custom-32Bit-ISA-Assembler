@@ -19,19 +19,21 @@ public class ImmediateHandler {
     //If no prefix exists the NumberFormatException must be handled.
     public int parseImmediateToInt(String lastOperand){
         String immediateString = lastOperand.substring(1, Math.min(PREFIX_END_INDEX, lastOperand.length()));
-        int immediateValue;
+        long immediateValue;
 
         switch (immediateString) {
             case BINARY_PREFIX ->
                     immediateValue =
-                            Integer.parseInt(lastOperand.substring(PREFIX_END_INDEX), 2);
+                            Long.parseUnsignedLong(lastOperand.substring(PREFIX_END_INDEX), 2);
             case HEXADECIMAL_PREFIX ->
                     immediateValue =
-                            Integer.parseInt(lastOperand.substring(PREFIX_END_INDEX), 16);
-            default -> immediateValue = Integer.parseInt(lastOperand.substring(DELIMITER_END_INDEX));
+                            Long.parseUnsignedLong(lastOperand.substring(PREFIX_END_INDEX), 16);
+            default -> immediateValue = Long.parseUnsignedLong(lastOperand.substring(DELIMITER_END_INDEX));
         }
 
-        return immediateValue;
+        if (immediateValue > 0xFFFFFFFFL) throw new NumberFormatException();
+
+        return (int) immediateValue;
     }
 
     public boolean isInRange(int immediateValue, int immediateMaxBits, boolean negativeAllowed){

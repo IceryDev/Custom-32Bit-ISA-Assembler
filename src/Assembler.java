@@ -5,6 +5,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -20,6 +21,8 @@ public class Assembler {
     public static String isaPath = "src/isa.csv";
 
     //Do not modify any of these below unless you are sure what you are doing.
+    public static final int OPCODE_MASK = 0xFFFFF000;
+    public static final int DR_MASK = 0x00000F00;
     public static final int REGA_MASK = 0x000000F0;
     public static final int REGB_MASK = 0x0000000F;
 
@@ -73,6 +76,8 @@ public class Assembler {
         if (!searchLabels(fileLines, labels)) return; //The error message is logged within the function.
 
         if (!assembleInstructions(fileLines, labels, isp, instructions)) return;
+
+        createMemFile(outputFilePath, instructions, memory, isp);
 
     }
 
@@ -345,5 +350,63 @@ public class Assembler {
             opCode = isp.flagType.encode(opCode, hasFlag, immAllowAndInc, isCmp);
         }
         return opCode;
+    }
+
+    private static void createMemFile(String outputPath, ArrayList<Integer> insts, ArrayList<Integer> mem, ISetParser isp) {
+
+        try (PrintWriter out = new PrintWriter(new FileWriter(outputPath, StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            int lineNo = 0;
+            if (isp.memType == MemType.Inject) {
+                for (Integer value : mem) {
+                    sb.append(String.format("\"%32s\"", Integer.toBinaryString(value)).replace(' ', '0'));
+                    sb.append(String.format(", --%02d", lineNo++));
+                    out.println(sb.toString());
+                    sb.setLength(0);
+                }
+            }
+
+            int lastLine = lineNo;
+            for (int i = 0; i < isp.memSize - lastLine; i++) {
+                out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
+            }
+
+            for (Integer instruction : insts) {
+                int parsedVal = (instruction & OPCODE_MASK) >> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
+                sb.append(String.format("\"%20s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
+                parsedVal = (instruction & DR_MASK) >> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
+                sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
+                parsedVal = (instruction & REGA_MASK) >> (PAYLOAD_SLOT_WIDTH);
+                sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
+                parsedVal = (instruction & REGB_MASK);
+                sb.append(String.format("\"%4s\"", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
+                sb.append(String.format(", --%02d", lineNo++));
+                out.println(sb.toString());
+                sb.setLength(0);
+            }
+
+            if(isp.memType == MemType.Shift) {
+                while(lineNo < isp.memIndex) {
+                    out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
+                }
+
+                for (Integer value : mem) {
+                    sb.append(String.format("\"%32s\"", Integer.toBinaryString(value)).replace(' ', '0'));
+                    sb.append(String.format(", --%02d", lineNo++));
+                    out.println(sb.toString());
+                    sb.setLength(0);
+                }
+            }
+
+
+        }
+        catch (FileNotFoundException error){
+            System.err.printf("Error: File %s not found.\n", outputPath);
+            return;
+        }
+        catch (IOException error){
+            System.err.println("Error: An error occurred while reading file: " + error.getMessage());
+            return;
+        }
     }
 }

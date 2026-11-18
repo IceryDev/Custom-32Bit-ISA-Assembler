@@ -2,8 +2,8 @@
 TempLabel:
     MOV     R0 R10
     MOV     R1 #0b1010
-    MOVS    R2 R11
-    MOVS    R3 #3
+    FRM     R1 #0x25000
+    FRM     R2 #0xAAAAAAAA
 
 AnotherLabel:
     SUM     R0 R0 R0
