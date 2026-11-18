@@ -25,5 +25,6 @@ replay_pid*
 
 src/isetConfig.xml
 src/isa.csv
+result.txt
 out
 out/*
