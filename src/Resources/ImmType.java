@@ -8,7 +8,7 @@ package Resources;
  *  - {@code Separate}: Hardware ISA provides separate instructions for imm and non-imm operations. <br>
  *  - {@code ImmBit}: The assembler uses one of the opcode bits as the "immediate" bit
  *  the input opcode size has to be one less if this option is chosen. The imm bit either is
- *  always the least significant bit in the opcode. (Takes priority over flag bit) <br>
+ *  the first or second least significant bit in the opcode. (Imm shifting is executed first) <br>
  *  - {@code Incremental}: If an immediate operand is allowed for the instruction, increments the opcode
  *  by one to generate the immediate version of the operation.
  *  <br>
@@ -18,9 +18,24 @@ package Resources;
  *  will not work.
  */
 public enum ImmType {
-    ImmBit(1),
-    Incremental,
-    Separate();
+    ImmBit(1) {
+        @Override
+        int encode(int opCode, boolean imm) {
+            return ((opCode << 1) + (imm ? 1 : 0));
+        }
+    },
+    Incremental(){
+        @Override
+        int encode(int opCode, boolean imm) {
+            return (opCode + (imm ? 1 : 0));
+        }
+    },
+    Separate() {
+        @Override
+        int encode(int opCode, boolean imm) {
+            return opCode;
+        }
+    };
 
     public final int OP_SHRINK;
     ImmType() {
@@ -30,4 +45,6 @@ public enum ImmType {
     ImmType(int opShrink) {
         this.OP_SHRINK = opShrink;
     }
+
+    abstract int encode(int opCode, boolean imm);
 }

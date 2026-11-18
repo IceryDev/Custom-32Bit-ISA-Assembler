@@ -26,7 +26,8 @@ public class ISetParser {
     public final ImmType immType;
     public final FlagType flagType;
     public final MemType memType;
-    public final int startIndex;
+    public final int memIndex;
+    public final int memSize;
     public final int shiftAmount;
 
     public ISetParser (String configFilePath)
@@ -90,11 +91,26 @@ public class ISetParser {
                 throw new IllegalArgumentException("Error: MemType is not valid in config file!");
         }
 
-        elements = configFile.getElementsByTagName("Start");
-        if (elements.getLength() != 1) {
-            throw new IllegalFormatWidthException(elements.getLength());
+        switch(this.memType) {
+            case MemType.Inject:
+                this.memIndex = 0;
+                elements = configFile.getElementsByTagName("Start");
+                if (elements.getLength() != 1) {
+                    throw new IllegalFormatWidthException(elements.getLength());
+                }
+                this.memSize = Integer.parseInt(elements.item(0).getTextContent().trim());
+                break;
+            case MemType.Shift:
+                this.memIndex = 1 << this.shiftAmount;
+                this.memSize = 16;
+                break;
+            case MemType.Limited:
+                this.memIndex = -1;
+                this.memSize = 0;
+                break;
+            default:
+                throw new IllegalArgumentException("Error: MemType is not valid!");
         }
-        this.startIndex = Integer.parseInt(elements.item(0).getTextContent().trim());
     }
 
     public boolean getISet(String isetFilePath) {
