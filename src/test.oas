@@ -1,15 +1,6 @@
 
 TempLabel:
-    MOV     R0 R10
-    MOV     R1 #0b1010
-    FRM     R1 &R1
-    FRM     R2 #0xAAAAAAAA
-
-AnotherLabel:
-    SUM     R0 R0 R0
-    BRC     AnotherLabel
-
+    MOV     R0 #0
 End:
-    AND     R11 R4 R8
-    RIN     R0 R1
-    BHS     End
+    RIN     R0 R0
+    BRC     End

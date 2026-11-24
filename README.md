@@ -61,9 +61,13 @@ Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 ```bash
 <op> <Rd> <Rn>/#<imm4>
 ```
-- Memory instruction general format:
+- Load instruction general format:
 ```bash
 <op> <Rd> &<Ra>/#<imm32>
+```
+- Store instruction general format:
+```bash
+<op> <Rv> &<Ra>
 ```
 - Label format:
 ```bash
@@ -74,8 +78,10 @@ Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 <op> <Label>
 ```
 
-Where <\op>, <\Rd>, <\Rn>, <\Rm>, <\Ra>, and <\imm4/32> are placeholders for the instruction name, destination register, register operand 1, 
-register operand 2, register operand containing address, and immediate value with size 4/32 bits.
+Where `<op>`, `<Rd>`, `<Rn>`, `<Rm>`, `<Ra>`, `<Rv>`, and `<imm4/32>` are placeholders for the instruction name, destination register, register operand 1, 
+register operand 2, register operand containing address, value register for store, and immediate value with size 4/32 bits.
+
+**NOTE:** This assembler ONLY accepts input with this format, for instance putting an immediate to a store instruction will result in an error.
 
 ### Delimiters (Can be configured from the Assembler.java file)
 - "#": Precedes an immediate operand

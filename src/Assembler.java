@@ -198,6 +198,7 @@ public class Assembler {
                 currentInstruction = isp.iset.get(currentInstName);
                 instructionNo++;
                 int opBits = currentInstruction.opCode();
+                boolean isStore = currentInstruction.isStore();
 
                 //Check correct operand count
                 int operandCount = (currentInstruction.isBranch() ? BRANCH_OP_COUNT : currentInstruction.opCount());
@@ -284,7 +285,9 @@ public class Assembler {
                             tokens[1], lineNo);
                     return false;
                 }
-                opBits = (opBits << PAYLOAD_SLOT_WIDTH) + Register.valueOf(tokens[1].toUpperCase()).getRegCode();
+
+                int drVal = Register.valueOf(tokens[1].toUpperCase()).getRegCode(); //Destination register value
+                opBits = (opBits << PAYLOAD_SLOT_WIDTH) + (isStore ? 0 : drVal) ;
 
                 if (operandCount == 2 && hasImmediate) {
                     if (currentInstruction.isLoad() && isp.memType != MemType.Limited) {
@@ -292,8 +295,14 @@ public class Assembler {
                             System.err.println("Error: Too many memory spaces to address, try using less load instructions.");
                             return false;
                         }
-                        opBits = (opBits << ((PAYLOAD_SLOTS-1)*PAYLOAD_SLOT_WIDTH)) + (memory.size());
+                        opBits = opBits << PAYLOAD_SLOT_WIDTH;
+                        if (isp.fillAllForLoad) opBits += memory.size();
+                        opBits = (opBits << (PAYLOAD_SLOT_WIDTH)) + (memory.size());
                         memory.add(immediateValue);
+                    }
+                    else if (isStore) {
+                        System.err.println("Error: Store instructions cannot contain immediate operands.");
+                        return false;
                     }
                     else {
                         opBits = (opBits << ((PAYLOAD_SLOTS-1)*PAYLOAD_SLOT_WIDTH)) + immediateValue;
@@ -304,7 +313,13 @@ public class Assembler {
                 else {
                     String secondRegisterName = tokens[2].toUpperCase();
                     boolean isAddr = secondRegisterName.startsWith(ADDRESS_DELIMITER);
-                    if (!(isAddr == currentInstruction.isLoad())) {
+                    if (isAddr && !(currentInstruction.isLoad() || isStore)) {
+                        System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Address should"+
+                                        " only be used for memory instructions\n",
+                                tokens[2], lineNo);
+                        return false;
+                    }
+                    if (!isAddr && (currentInstruction.isLoad() || isStore)) {
                         System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Memory access"+
                                         " must be done via addressing if no immediate is used\n",
                                 tokens[2], lineNo);
@@ -318,9 +333,10 @@ public class Assembler {
                                 tokens[2], lineNo);
                         return false;
                     }
+
                     opBits = (opBits << PAYLOAD_SLOT_WIDTH) + Register.valueOf(secondRegisterName).getRegCode();
                     if (isAddr) {
-                        out.add(opBits << PAYLOAD_SLOT_WIDTH);
+                        out.add((isStore) ? ((opBits << PAYLOAD_SLOT_WIDTH) | drVal) : opBits << PAYLOAD_SLOT_WIDTH); //Put addr to SA if it is store
                         lineNo++;
                         continue;
                     }

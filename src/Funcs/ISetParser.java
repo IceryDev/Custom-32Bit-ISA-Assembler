@@ -21,12 +21,13 @@ import java.util.IllegalFormatWidthException;
 
 public class ISetParser {
     public static final String TRUE_VAL = "1";
-    public static final int HEADER_SIZE = 10;
+    public static final int HEADER_SIZE = 11;
 
     public HashMap<String, Instruction> iset = new HashMap<>();
     public final ImmType immType;
     public final FlagType flagType;
     public final MemType memType;
+    public final boolean fillAllForLoad;
     public final int memIndex;
     public final int memSize;
     public final int instStart;
@@ -125,6 +126,10 @@ public class ISetParser {
             default:
                 throw new IllegalArgumentException("Error: MemType is not valid!");
         }
+
+        elements = configFile.getElementsByTagName("FillAllForLoad");
+        fillAllForLoad = (elements.getLength() != 0) && (Boolean.parseBoolean(elements.item(0).getTextContent().trim()));
+
     }
 
     /**
@@ -154,11 +159,12 @@ public class ISetParser {
                         tokens[2].compareTo(TRUE_VAL) == 0,
                         tokens[3].compareTo(TRUE_VAL) == 0,
                         tokens[4].compareTo(TRUE_VAL) == 0,
-                        Integer.parseInt(tokens[5]),
-                        tokens[6].compareTo(TRUE_VAL) == 0,
+                        tokens[5].compareTo(TRUE_VAL) == 0,
+                        Integer.parseInt(tokens[6]),
                         tokens[7].compareTo(TRUE_VAL) == 0,
                         tokens[8].compareTo(TRUE_VAL) == 0,
-                        Integer.parseInt(tokens[9]));
+                        tokens[9].compareTo(TRUE_VAL) == 0,
+                        Integer.parseInt(tokens[10]));
 
                 if (tmp.opCount() > 3) {
                     System.err.println("Error: This assembler only supports instructions with 2 or 3 operands. " +
