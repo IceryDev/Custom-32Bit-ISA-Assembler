@@ -10,7 +10,7 @@ package Resources;
  *  the input opcode size has to be one less if this option is chosen. The imm bit either is
  *  the first or second least significant bit in the opcode. (Imm shifting is executed first) <br>
  *  - {@code Incremental}: If an immediate operand is allowed for the instruction, increments the opcode
- *  by one to generate the immediate version of the operation.
+ *  by instruction width to generate the immediate version of the operation.
  *  <br>
  *  Note: Both implementations have to be implemented by an ASM by the hardware in all cases. These
  *  concern only the placement of the bits and the corresponding locations in the control memory.
@@ -20,19 +20,19 @@ package Resources;
 public enum ImmType {
     ImmBit(1) {
         @Override
-        public int encode(int opCode, boolean imm) {
+        public int encode(int opCode, boolean imm, int instWidth) {
             return ((opCode << 1) + (imm ? 1 : 0));
         }
     },
     Incremental(){
         @Override
-        public int encode(int opCode, boolean imm) {
-            return (opCode + (imm ? 1 : 0));
+        public int encode(int opCode, boolean imm, int instWidth) {
+            return (opCode + (imm ? instWidth : 0));
         }
     },
     Separate() {
         @Override
-        public int encode(int opCode, boolean imm) {
+        public int encode(int opCode, boolean imm, int instWidth) {
             return opCode;
         }
     };
@@ -46,5 +46,5 @@ public enum ImmType {
         this.OP_SHRINK = opShrink;
     }
 
-    public abstract int encode(int opCode, boolean imm);
+    public abstract int encode(int opCode, boolean imm, int instWidth);
 }

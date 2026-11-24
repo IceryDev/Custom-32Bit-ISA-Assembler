@@ -7,5 +7,6 @@ public record Instruction(int opCode,
                           int opCount,
                           boolean setFlags,
                           boolean allowReg,
-                          boolean allowImm) {
+                          boolean allowImm,
+                          int instWidth) {
 }

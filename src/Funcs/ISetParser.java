@@ -21,7 +21,7 @@ import java.util.IllegalFormatWidthException;
 
 public class ISetParser {
     public static final String TRUE_VAL = "1";
-    public static final int HEADER_SIZE = 9;
+    public static final int HEADER_SIZE = 10;
 
     public HashMap<String, Instruction> iset = new HashMap<>();
     public final ImmType immType;
@@ -29,6 +29,7 @@ public class ISetParser {
     public final MemType memType;
     public final int memIndex;
     public final int memSize;
+    public final int instStart;
     public final int shiftAmount;
     public int userDefOpcodeSize = 20; //In bits
 
@@ -98,22 +99,28 @@ public class ISetParser {
                 throw new IllegalArgumentException("Error: MemType is not valid in config file!");
         }
 
+        elements = configFile.getElementsByTagName("Start");
+        if (elements.getLength() != 1) {
+            throw new IllegalFormatWidthException(elements.getLength());
+        }
+        int tmpStart = Integer.parseInt(elements.item(0).getTextContent().trim());
+
         switch(this.memType) {
             case MemType.Inject:
                 this.memIndex = 0;
-                elements = configFile.getElementsByTagName("Start");
-                if (elements.getLength() != 1) {
-                    throw new IllegalFormatWidthException(elements.getLength());
-                }
-                this.memSize = Integer.parseInt(elements.item(0).getTextContent().trim());
+                this.memSize = tmpStart;
+                this.instStart = this.memSize;
                 break;
             case MemType.Shift:
+                this.instStart = tmpStart;
                 this.memIndex = 1 << this.shiftAmount;
+                if (this.instStart >= this.memIndex && this.instStart <= this.memIndex + 16) throw new IllegalStateException("Error: Memory and instruction locations clash!");
                 this.memSize = 16;
                 break;
             case MemType.Limited:
                 this.memIndex = -1;
                 this.memSize = 0;
+                this.instStart = tmpStart;
                 break;
             default:
                 throw new IllegalArgumentException("Error: MemType is not valid!");
@@ -150,7 +157,8 @@ public class ISetParser {
                         Integer.parseInt(tokens[5]),
                         tokens[6].compareTo(TRUE_VAL) == 0,
                         tokens[7].compareTo(TRUE_VAL) == 0,
-                        tokens[8].compareTo(TRUE_VAL) == 0);
+                        tokens[8].compareTo(TRUE_VAL) == 0,
+                        Integer.parseInt(tokens[9]));
 
                 if (tmp.opCount() > 3) {
                     System.err.println("Error: This assembler only supports instructions with 2 or 3 operands. " +

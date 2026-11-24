@@ -50,7 +50,6 @@ public class Assembler {
         isaPath = args[1];
         String inputFilePath = args[2];
         String outputFilePath = args[3] + ".txt";
-        ImmediateHandler immediateHandler = new ImmediateHandler();
         ISetParser isp;
         try {
             isp = new ISetParser(configPath);
@@ -119,7 +118,7 @@ public class Assembler {
         int lineNo = 1;
 
         for (String line : lines){
-            String[] tokens = line.split(" +");
+            String[] tokens = line.split("\\s+");
             if (line.isEmpty()) { lineNo++; continue; }
 
             if (tokens[0].equals(LABEL_SUFFIX)){
@@ -164,11 +163,11 @@ public class Assembler {
         int instructionNo = 0;
 
         for (String line : lines) {
-            if (line.isEmpty() || line.startsWith(COMMENT_DELIMITER)) {
+            if (line.isEmpty()) {
                 lineNo++;
                 continue;
             }
-            String[] tokens = line.split(" +");
+            String[] tokens = line.split("\\s+");
 
             //Check if nothing illegal comes after label
             if (tokens[0].endsWith(LABEL_SUFFIX)){
@@ -217,7 +216,7 @@ public class Assembler {
                     opBits = opBits << (OPCODE_SIZE_BITS-isp.userDefOpcodeSize);
 
                     String labelName = tokens[BRANCH_OP_COUNT];
-                    if (!labels.containsKey(labelName)){
+                    if (!labelDict.containsKey(labelName)){
                         System.err.printf("Syntax Error: No such label defined as %s at line %d\n",
                                 labelName, lineNo);
                         return false;
@@ -277,7 +276,7 @@ public class Assembler {
                     return false;
                 }
 
-                opBits = assembleOpCode(opBits,
+                opBits = assembleOpCode(opBits, currentInstruction.instWidth(),
                         isp.immType == ImmType.Incremental && currentInstruction.allowImm(), hasImmediate, flagsSet, currentInstruction.isCompare(), isp);
                 if (!Register.isRegister(tokens[1].toUpperCase())){
                     System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Operands other than"+
@@ -347,22 +346,23 @@ public class Assembler {
     /**
      * Applies different options for the immediates and flags to the opcode to generate unique opcodes.
      * @param opCode The opcode without the S or Imm Bits if they are set
+     * @param instWidth The memory places taken in the control memory
      * @param immAllowAndInc Is immediate allowed AND also set to Increment for this instruction
      * @param hasImm Does this operation have an immediate operand
      * @param hasFlag Does this operation have flags set
      * @param isp {@link ISetParser} object for configuration details
      * @return Resultant 20-bit opcode.
      */
-    private static int assembleOpCode(int opCode, boolean immAllowAndInc, boolean hasImm, boolean hasFlag, boolean isCmp, ISetParser isp) {
+    private static int assembleOpCode(int opCode, int instWidth, boolean immAllowAndInc, boolean hasImm, boolean hasFlag, boolean isCmp, ISetParser isp) {
 
         boolean flagIncrement = isp.flagType == FlagType.Incremental;
         if (flagIncrement) {
-            opCode = isp.flagType.encode(opCode, hasFlag, immAllowAndInc, isCmp);
-            opCode = isp.immType.encode(opCode, hasImm);
+            opCode = isp.flagType.encode(opCode, hasFlag, immAllowAndInc, isCmp, instWidth);
+            opCode = isp.immType.encode(opCode, hasImm, instWidth);
         }
         else {
-            opCode = isp.immType.encode(opCode, hasImm);
-            opCode = isp.flagType.encode(opCode, hasFlag, immAllowAndInc, isCmp);
+            opCode = isp.immType.encode(opCode, hasImm, instWidth);
+            opCode = isp.flagType.encode(opCode, hasFlag, immAllowAndInc, isCmp, instWidth);
         }
         return opCode;
     }
@@ -389,16 +389,16 @@ public class Assembler {
             }
 
             int lastLine = lineNo;
-            for (int i = 0; i < isp.memSize - lastLine; i++) {
+            for (int i = 0; i < isp.instStart - lastLine; i++) {
                 out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
             }
 
             for (Integer instruction : insts) {
-                int parsedVal = (instruction & OPCODE_MASK) >> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
+                int parsedVal = (instruction & OPCODE_MASK) >>> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
                 sb.append(String.format("\"%20s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                parsedVal = (instruction & DR_MASK) >> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
+                parsedVal = (instruction & DR_MASK) >>> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
                 sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                parsedVal = (instruction & REGA_MASK) >> (PAYLOAD_SLOT_WIDTH);
+                parsedVal = (instruction & REGA_MASK) >>> (PAYLOAD_SLOT_WIDTH);
                 sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
                 parsedVal = (instruction & REGB_MASK);
                 sb.append(String.format("\"%4s\"", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
@@ -408,6 +408,10 @@ public class Assembler {
             }
 
             if(isp.memType == MemType.Shift) {
+                if (isp.memIndex < lineNo) {
+                    throw new IllegalStateException("Error: RAM overlaps instruction memory!");
+                }
+
                 while(lineNo < isp.memIndex) {
                     out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
                 }
@@ -427,7 +431,7 @@ public class Assembler {
             return;
         }
         catch (IOException error){
-            System.err.println("Error: An error occurred while reading file: " + error.getMessage());
+            System.err.println("Error: An error occurred while writing file: " + error.getMessage());
             return;
         }
     }
