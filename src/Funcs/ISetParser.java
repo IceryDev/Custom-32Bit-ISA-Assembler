@@ -28,6 +28,8 @@ public class ISetParser {
     public final FlagType flagType;
     public final MemType memType;
     public final boolean fillAllForLoad;
+    public final boolean outputHex;
+    public final boolean reverse;
     public final int memIndex;
     public final int memSize;
     public final int instStart;
@@ -130,6 +132,24 @@ public class ISetParser {
         elements = configFile.getElementsByTagName("FillAllForLoad");
         fillAllForLoad = (elements.getLength() != 0) && (Boolean.parseBoolean(elements.item(0).getTextContent().trim()));
 
+        elements = configFile.getElementsByTagName("ReverseOrder");
+        reverse = (elements.getLength() != 0) && (Boolean.parseBoolean(elements.item(0).getTextContent().trim()));
+
+        elements = configFile.getElementsByTagName("OutputBase");
+        if (elements.getLength() == 0) outputHex = true;
+        else {
+            switch (elements.item(0).getTextContent().trim().toUpperCase()){
+                case "BINARY":
+                    outputHex = false;
+                    break;
+                case "HEX":
+                    outputHex = true;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Error: Only binary and hexadecimal output is supported.");
+            }
+        }
+
     }
 
     /**
@@ -155,6 +175,7 @@ public class ISetParser {
                     System.err.println("Error: Missing elements in ISA spec. Please fill all fields.");
                     return false;
                 }
+                int sign = (this.reverse) ? -1 : 1;
                 Instruction tmp = new Instruction(Integer.decode(tokens[1]),
                         tokens[2].compareTo(TRUE_VAL) == 0,
                         tokens[3].compareTo(TRUE_VAL) == 0,
@@ -164,7 +185,7 @@ public class ISetParser {
                         tokens[7].compareTo(TRUE_VAL) == 0,
                         tokens[8].compareTo(TRUE_VAL) == 0,
                         tokens[9].compareTo(TRUE_VAL) == 0,
-                        Integer.parseInt(tokens[10]));
+                        Integer.parseInt(tokens[10]) * sign);
 
                 if (tmp.opCount() > 3) {
                     System.err.println("Error: This assembler only supports instructions with 2 or 3 operands. " +

@@ -25,6 +25,7 @@ replay_pid*
 
 src/isetConfig.xml
 src/isa.csv
+src/test.oas
 result.txt
 out
 out/*

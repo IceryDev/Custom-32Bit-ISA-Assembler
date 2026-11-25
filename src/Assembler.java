@@ -199,6 +199,7 @@ public class Assembler {
                 instructionNo++;
                 int opBits = currentInstruction.opCode();
                 boolean isStore = currentInstruction.isStore();
+                boolean isCmp = currentInstruction.isCompare();
 
                 //Check correct operand count
                 int operandCount = (currentInstruction.isBranch() ? BRANCH_OP_COUNT : currentInstruction.opCount());
@@ -240,7 +241,7 @@ public class Assembler {
                 }
 
                 //Check if flags are valid (unless it is Hardware mode, then we don't care about it)
-                if (!(isp.flagType == FlagType.Hardware || currentInstruction.isCompare()) && !currentInstruction.setFlags() && flagsSet) {
+                if (!(isp.flagType == FlagType.Hardware || isCmp) && !currentInstruction.setFlags() && flagsSet) {
                     System.err.printf("Syntax Error: Operation %s cannot have a flag setter suffix \"%s\"\n",
                             currentInstName, FLAG_SUFFIX);
                     return false;
@@ -287,7 +288,7 @@ public class Assembler {
                 }
 
                 int drVal = Register.valueOf(tokens[1].toUpperCase()).getRegCode(); //Destination register value
-                opBits = (opBits << PAYLOAD_SLOT_WIDTH) + (isStore ? 0 : drVal) ;
+                opBits = (opBits << PAYLOAD_SLOT_WIDTH) + ((isStore || isCmp) ? 0 : drVal);
 
                 if (operandCount == 2 && hasImmediate) {
                     if (currentInstruction.isLoad() && isp.memType != MemType.Limited) {
@@ -303,6 +304,10 @@ public class Assembler {
                     else if (isStore) {
                         System.err.println("Error: Store instructions cannot contain immediate operands.");
                         return false;
+                    }
+                    else if (isCmp) {
+                        opBits = (opBits << PAYLOAD_SLOT_WIDTH) + drVal;
+                        opBits = (opBits << PAYLOAD_SLOT_WIDTH) + immediateValue;
                     }
                     else {
                         opBits = (opBits << ((PAYLOAD_SLOTS-1)*PAYLOAD_SLOT_WIDTH)) + immediateValue;
@@ -341,7 +346,8 @@ public class Assembler {
                         continue;
                     }
 
-                    if (operandCount == 2) out.add(opBits << PAYLOAD_SLOT_WIDTH);
+                    if (isCmp) out.add(opBits);
+                    else if (operandCount == 2) out.add(opBits << PAYLOAD_SLOT_WIDTH);
                     else if (hasImmediate) out.add((opBits << PAYLOAD_SLOT_WIDTH) + immediateValue);
                     else {
                         if (!Register.isRegister(tokens[3].toUpperCase())){

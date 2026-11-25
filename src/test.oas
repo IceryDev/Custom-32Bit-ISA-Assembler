@@ -1,6 +1,0 @@
-
-TempLabel:
-    MOV     R0 #0
-End:
-    RIN     R0 R0
-    BRC     End
