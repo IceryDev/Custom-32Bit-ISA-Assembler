@@ -19,16 +19,20 @@ The approach used to represent instructions with immediate operands or flag-sett
 <ISAOptions>
     <ImmType>Mode</ImmType>
     <FlagType>Mode</FlagType>
+    <ReverseOrder>true/false</ReverseOrder>
     <MemType amnt="Optional">Mode</MemType>
     <Start>Value</Start>
+    <OutputBase>Mode</OutputBase>
 </ISAOptions>
 ```
 Allowed modes are as follows; for more information, see the Javadoc at the top of the files under src/Resources:
 <br>
 - ImmType: Separate, Incremental, ImmBit
 - FlagType: Hardware, Incremental, SBit
+- ReverseOrder: Reverses the order of instructions for incremental modes. So immediate version comes first if ImmType is incremental for instance. Regardless of the choice, in the CSV file, the opcode of the **non-immediate and non-flag-setter** version of the instruction must be used.
 - MemType: Limited, Inject, Shift
 - Start: The start of instruction memory, a positive integer (Applies when MemType is type Inject)
+- OutputBase: Binary, Hex (the output text format)
 
 <br> _If Shift is chosen for MemType, the shift amount has to be specified. This is a positive integer that makes the instruction memory start from 1 << ShiftAmnt_
 <br> <br> Another note: It is not advised to use bit modes if you have instructions with width more than one that uses those corresponding functions. You can implement separate instructions for these, or use one of the other modes.
@@ -36,8 +40,8 @@ Allowed modes are as follows; for more information, see the Javadoc at the top o
 ### Instruction Set Specification
 Additionally, the program must be supplied with a valid instruction set, in CSV format, which includes headers. An example with the headers is given below:
 ```
-INST, OpCode, Branch, Compare, Load, OpCount, SetFlags, RegAllow, ImmAllow, InstWidth
-ADD, 0x12345, 0, 0, 0, 3, 1, 1, 1, 1
+INST, OpCode, Branch, Compare, Load, Store, OpCount, SetFlags, RegAllow, ImmAllow, InstWidth
+ADD, 0x12345, 0, 0, 0, 0, 3, 1, 1, 1, 1
 ```
 Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 <BR>
@@ -46,6 +50,7 @@ Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 - `Branch`: Is this instruction a branch instruction?
 - `Compare`: Is the only purpose of this instruction setting flags?
 - `Load`: Is this instruction used when loading values _from_ memory?
+- `Store`: Is this instruction used when storing values _to_ memory?
 - `OpCount`: Operand count. Supported: 2-3
 - `SetFlags`: Does this instruction have variations that can set flags?
 - `RegAllow`: Can the last operand be a register operand for this instruction?
@@ -90,7 +95,7 @@ register operand 2, register operand containing address, value register for stor
 - ":": Succeeds a label name
 
 ### Running the Assembler
-To run this assembler, you need JDK 21 or later.
+To run this assembler, you need JDK 21 or later. Configure your XML file, create your instruction set in the given CSV format, and write your assembly code in a file with the extension .oas (for Orbyte Assembly) in the format described above.
 
 Get the .jar file from the releases part, place all required files in the same folder and run within that folder:
 ```bash
