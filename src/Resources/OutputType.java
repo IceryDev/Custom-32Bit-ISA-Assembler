@@ -21,13 +21,13 @@ public enum OutputType {
         public StringBuilder writeInst(StringBuilder sb, Integer inst, int lineNo) {
             sb.setLength(0);
             int parsedVal = (inst & OPCODE_MASK) >>> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
-            sb.append(String.format("\"%5s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("x\"%5s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & DR_MASK) >>> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
-            sb.append(String.format("\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("x\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & REGA_MASK) >>> (PAYLOAD_SLOT_WIDTH);
-            sb.append(String.format("\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("x\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & REGB_MASK);
-            sb.append(String.format("\"%1s\"", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("x\"%1s\"", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             sb.append(String.format(", --%02X", lineNo));
             return sb;
         }
