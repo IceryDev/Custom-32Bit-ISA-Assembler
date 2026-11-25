@@ -403,30 +403,19 @@ public class Assembler {
             int lineNo = 0;
             if (isp.memType == MemType.Inject) {
                 for (Integer value : mem) {
-                    sb.append(String.format("\"%32s\"", Integer.toBinaryString(value)).replace(' ', '0'));
-                    sb.append(String.format(", --%02d", lineNo++));
+                    sb = isp.outType.writeMem(sb, value, lineNo++);
                     out.println(sb.toString());
-                    sb.setLength(0);
                 }
             }
 
             int lastLine = lineNo;
             for (int i = 0; i < isp.instStart - lastLine; i++) {
-                out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
+                out.println(isp.outType.writeNull(sb, lineNo++));
             }
 
             for (Integer instruction : insts) {
-                int parsedVal = (instruction & OPCODE_MASK) >>> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
-                sb.append(String.format("\"%20s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                parsedVal = (instruction & DR_MASK) >>> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
-                sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                parsedVal = (instruction & REGA_MASK) >>> (PAYLOAD_SLOT_WIDTH);
-                sb.append(String.format("\"%4s\"&", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                parsedVal = (instruction & REGB_MASK);
-                sb.append(String.format("\"%4s\"", Integer.toBinaryString(parsedVal)).replace(' ', '0'));
-                sb.append(String.format(", --%02d", lineNo++));
+                sb = isp.outType.writeInst(sb, instruction, lineNo++);
                 out.println(sb.toString());
-                sb.setLength(0);
             }
 
             if(isp.memType == MemType.Shift) {
@@ -435,14 +424,12 @@ public class Assembler {
                 }
 
                 while(lineNo < isp.memIndex) {
-                    out.println(String.format("\"00000000000000000000000000000000\", --%02d", lineNo++));
+                    out.println(isp.outType.writeNull(sb, lineNo++));
                 }
 
                 for (Integer value : mem) {
-                    sb.append(String.format("\"%32s\"", Integer.toBinaryString(value)).replace(' ', '0'));
-                    sb.append(String.format(", --%02d", lineNo++));
+                    sb = isp.outType.writeMem(sb, value, lineNo++);
                     out.println(sb.toString());
-                    sb.setLength(0);
                 }
             }
 

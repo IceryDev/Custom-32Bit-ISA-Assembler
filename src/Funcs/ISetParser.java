@@ -1,9 +1,6 @@
 package Funcs;
 
-import Resources.FlagType;
-import Resources.ImmType;
-import Resources.Instruction;
-import Resources.MemType;
+import Resources.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -28,7 +25,7 @@ public class ISetParser {
     public final FlagType flagType;
     public final MemType memType;
     public final boolean fillAllForLoad;
-    public final boolean outputHex;
+    public final OutputType outType;
     public final boolean reverse;
     public final int memIndex;
     public final int memSize;
@@ -136,14 +133,14 @@ public class ISetParser {
         reverse = (elements.getLength() != 0) && (Boolean.parseBoolean(elements.item(0).getTextContent().trim()));
 
         elements = configFile.getElementsByTagName("OutputBase");
-        if (elements.getLength() == 0) outputHex = true;
+        if (elements.getLength() == 0) outType = OutputType.Binary;
         else {
             switch (elements.item(0).getTextContent().trim().toUpperCase()){
                 case "BINARY":
-                    outputHex = false;
+                    outType = OutputType.Binary;
                     break;
                 case "HEX":
-                    outputHex = true;
+                    outType = OutputType.Hex;
                     break;
                 default:
                     throw new IllegalArgumentException("Error: Only binary and hexadecimal output is supported.");
