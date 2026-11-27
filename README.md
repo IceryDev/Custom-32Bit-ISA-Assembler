@@ -40,8 +40,8 @@ Allowed modes are as follows; for more information, see the Javadoc at the top o
 ### Instruction Set Specification
 Additionally, the program must be supplied with a valid instruction set, in CSV format, which includes headers. An example with the headers is given below:
 ```
-INST, OpCode, Branch, Compare, Load, Store, OpCount, SetFlags, RegAllow, ImmAllow, InstWidth
-ADD, 0x12345, 0, 0, 0, 0, 3, 1, 1, 1, 1
+INST, OpCode, Branch, Compare, Load, Store, LogicUnit, OpCount, SetFlags, RegAllow, ImmAllow, InstWidth
+ADD, 0x12345, 0, 0, 0, 0, 0, 3, 1, 1, 1, 1
 ```
 Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 <BR>
@@ -51,6 +51,7 @@ Here is the meaning of each field (Use 0/1 for false/true in Boolean decisions):
 - `Compare`: Is the only purpose of this instruction setting flags?
 - `Load`: Is this instruction used when loading values _from_ memory?
 - `Store`: Is this instruction used when storing values _to_ memory?
+- `LogicUnit`: Does this instruction use the logical unit (not arithmetic)?
 - `OpCount`: Operand count. Supported: 2-3
 - `SetFlags`: Does this instruction have variations that can set flags?
 - `RegAllow`: Can the last operand be a register operand for this instruction?
