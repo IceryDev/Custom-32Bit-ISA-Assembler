@@ -18,7 +18,7 @@ import java.util.IllegalFormatWidthException;
 
 public class ISetParser {
     public static final String TRUE_VAL = "1";
-    public static final int HEADER_SIZE = 11;
+    public static final int HEADER_SIZE = 12;
 
     public HashMap<String, Instruction> iset = new HashMap<>();
     public final ImmType immType;
@@ -173,16 +173,18 @@ public class ISetParser {
                     return false;
                 }
                 int sign = (this.reverse) ? -1 : 1;
+                int opCount = Integer.parseInt(tokens[7]);
                 Instruction tmp = new Instruction(Integer.decode(tokens[1]),
                         tokens[2].compareTo(TRUE_VAL) == 0,
                         tokens[3].compareTo(TRUE_VAL) == 0,
                         tokens[4].compareTo(TRUE_VAL) == 0,
                         tokens[5].compareTo(TRUE_VAL) == 0,
-                        Integer.parseInt(tokens[6]),
-                        tokens[7].compareTo(TRUE_VAL) == 0,
+                        (tokens[6].compareTo(TRUE_VAL) == 0 && opCount == 2),
+                        opCount,
                         tokens[8].compareTo(TRUE_VAL) == 0,
                         tokens[9].compareTo(TRUE_VAL) == 0,
-                        Integer.parseInt(tokens[10]) * sign);
+                        tokens[10].compareTo(TRUE_VAL) == 0,
+                        Integer.parseInt(tokens[11]) * sign);
 
                 if (tmp.opCount() > 3) {
                     System.err.println("Error: This assembler only supports instructions with 2 or 3 operands. " +
