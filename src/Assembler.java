@@ -318,6 +318,7 @@ public class Assembler {
                 else {
                     String secondRegisterName = tokens[2].toUpperCase();
                     boolean isAddr = secondRegisterName.startsWith(ADDRESS_DELIMITER);
+                    boolean isLogicUnitAnd2Operand = currentInstruction.logicUnit2Op();
                     if (isAddr && !(currentInstruction.isLoad() || isStore)) {
                         System.err.printf("Syntax Error: Invalid operand \"%s\" at line %d. Address should"+
                                         " only be used for memory instructions\n",
@@ -339,14 +340,15 @@ public class Assembler {
                         return false;
                     }
 
-                    opBits = (opBits << PAYLOAD_SLOT_WIDTH) + Register.valueOf(secondRegisterName).getRegCode();
+                    if (isCmp) opBits = (opBits << PAYLOAD_SLOT_WIDTH) + drVal;
+                    opBits = (opBits << PAYLOAD_SLOT_WIDTH * (isLogicUnitAnd2Operand ? 2 : 1)) + Register.valueOf(secondRegisterName).getRegCode();
                     if (isAddr) {
-                        out.add((isStore) ? ((opBits << PAYLOAD_SLOT_WIDTH) | drVal) : opBits << PAYLOAD_SLOT_WIDTH); //Put addr to SA if it is store
+                        out.add((isStore) ? ((opBits << PAYLOAD_SLOT_WIDTH) | drVal) : opBits << PAYLOAD_SLOT_WIDTH); //Put dest to DR if it is store
                         lineNo++;
                         continue;
                     }
 
-                    if (isCmp) out.add(opBits);
+                    if (isCmp || isLogicUnitAnd2Operand) out.add(opBits);
                     else if (operandCount == 2) out.add(opBits << PAYLOAD_SLOT_WIDTH);
                     else if (hasImmediate) out.add((opBits << PAYLOAD_SLOT_WIDTH) + immediateValue);
                     else {
