@@ -5,7 +5,7 @@ public enum OutputType {
         @Override
         public StringBuilder writeMem(StringBuilder sb, Integer val, int lineNo) {
             sb.setLength(0);
-            sb.append(String.format("x\"%8s\"", Integer.toHexString(val)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("X\"%8s\"", Integer.toHexString(val)).replace(' ', '0').toUpperCase());
             sb.append(String.format(", --%02X", lineNo));
             return sb;
         }
@@ -13,7 +13,7 @@ public enum OutputType {
         @Override
         public StringBuilder writeNull(StringBuilder sb, int lineNo) {
             sb.setLength(0);
-            sb.append(String.format("x\"00000000\", --%02X", lineNo));
+            sb.append(String.format("X\"00000000\", --%02X", lineNo));
             return sb;
         }
 
@@ -21,13 +21,13 @@ public enum OutputType {
         public StringBuilder writeInst(StringBuilder sb, Integer inst, int lineNo) {
             sb.setLength(0);
             int parsedVal = (inst & OPCODE_MASK) >>> (PAYLOAD_SLOT_WIDTH * PAYLOAD_SLOTS);
-            sb.append(String.format("x\"%5s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("X\"%5s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & DR_MASK) >>> (PAYLOAD_SLOT_WIDTH * (PAYLOAD_SLOTS-1));
-            sb.append(String.format("x\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("X\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & REGA_MASK) >>> (PAYLOAD_SLOT_WIDTH);
-            sb.append(String.format("x\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("X\"%1s\"&", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             parsedVal = (inst & REGB_MASK);
-            sb.append(String.format("x\"%1s\"", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
+            sb.append(String.format("X\"%1s\"", Integer.toHexString(parsedVal)).replace(' ', '0').toUpperCase());
             sb.append(String.format(", --%02X", lineNo));
             return sb;
         }
